@@ -1,0 +1,14 @@
+description: Ultralytics v2_license_plate_model model trained on /kaggle/working/datasets/License-Plate-Recognition-4/data.yaml
+author: Ultralytics
+date: '2024-07-08T11:41:10.912226'
+version: 8.2.42
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: License_Plate
