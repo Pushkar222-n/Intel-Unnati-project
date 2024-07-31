@@ -25,55 +25,62 @@ def run_parking_inference(frame, coordinates, license_detect, vehicle_detect):
     """
     frame = cv2.resize(frame, (1280, 720))
     results = vehicle_detect.get_vehicle_predictions(source=frame)
+    results_data = np.array([box.data.cpu().numpy()
+                             for vehicle in results for box in vehicle.boxes]).squeeze()
+    cars_in_parking = dict()
+    for result in results_data:
 
-    # tracker=True,
-    # tracker_type="bytetrack.yaml")
+        if not result.size == 0 and result.size == 7:
+            x1, y1, x2, y2, vehicle_id, conf, class_id = result
 
-    cars_in_parking = []
-    for result in results:
-        print(
-            "Results from predictions received successfully !!")
-        boxes = result.boxes
-        for box in boxes:
-            x1, y1, x2, y2 = box.xyxy[0]
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            bbox_center = ((x1 + x2) // 2, (y1 + y2) // 2)
-            cars_in_parking.append(bbox_center)
-
-    print(cars_in_parking)
+            bbox_center = (int((x1 + x2) // 2), int((y1 + y2) // 2))
+            cars_in_parking[vehicle_id] = bbox_center
     for id, polyline in coordinates.items():
-        is_occupied = False
-        cv2.putText(frame,
-                    text=f"{id}",
-                    org=(polyline[0][0][0], polyline[0][0][1] - 10),
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.5,
-                    color=(0, 0, 255),
-                    thickness=2)
-        cv2.polylines(img=frame,
-                      pts=polyline,
-                      isClosed=True,
-                      color=(0, 0, 255),
-                      thickness=2)
-
         # Check vehicles and get parking occupancy
-        for centers in cars_in_parking:
+        for vehicle_id, center in cars_in_parking.items():
+            vehicle_id = int(vehicle_id)
             is_car_in_parking = cv2.pointPolygonTest(contour=polyline[0],
-                                                     pt=(centers),
+                                                     pt=(center),
                                                      measureDist=False)
             if is_car_in_parking >= 0:
-                is_occupied = True
-                cv2.circle(img=frame,
-                           center=centers,
-                           radius=5,
-                           color=(0, 255, 0),
-                           thickness=-1)
+                update_parking_occupancy(id, vehicle_id, True)
                 cv2.polylines(img=frame,
                               pts=polyline,
                               isClosed=True,
                               color=(0, 255, 0),
                               thickness=2)
-        update_parking_occupancy(id, is_occupied)
+                cv2.circle(img=frame,
+                           center=center,
+                           radius=5,
+                           color=(0, 255, 0),
+                           thickness=-1)
+                cv2.putText(frame,
+                            text=f"{id}",
+                            org=(polyline[0][0][0], polyline[0][0][1] - 10),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(0, 255, 0),
+                            thickness=2)
+            else:
+                cv2.putText(frame,
+                            text=f"{id}",
+                            org=(polyline[0][0][0], polyline[0][0][1] - 10),
+                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5,
+                            color=(0, 0, 255),
+                            thickness=2)
+                cv2.polylines(img=frame,
+                              pts=polyline,
+                              isClosed=True,
+                              color=(0, 0, 255),
+                              thickness=2)
+                cv2.circle(img=frame,
+                           center=center,
+                           radius=5,
+                           color=(0, 0, 255),
+                           thickness=-1)
+                update_parking_occupancy(id, vehicle_id, False)
+
     return frame
 
 

@@ -34,8 +34,10 @@ parser.add_argument("-rd", "--road_detection", action="store_true",
 
 args = parser.parse_args()
 
-source_dir = Path(
-    "/home/arthur_canon/Documents/Vehicle_Management/Vehicle_Management/Pushkar_try")
+source_dir = Path(__file__).parent.absolute()
+# source_dir = Path(source_dir)
+print(source_dir)
+
 path_to_parking_source = source_dir / args.source1
 path_to_road_source = source_dir / args.source2
 path_to_license_model = source_dir / "v2_license_plate_model.pt"
@@ -66,7 +68,7 @@ def vehicle_management(params):
         coordinates = pickle.load(fp)
 
     license_detect = LicensePlateDetection(
-        path_to_license_model, conf=0.6, verbose=False, stream=True)
+        path_to_license_model, conf=0.6, verbose=False, stream=True,)
     vehicle_detect = Vehicle_MOT(
         path_to_vehicle_model, conf=0.65, verbose=False, stream=True, tracker=True,
         tracker_type="bytetrack.yaml")

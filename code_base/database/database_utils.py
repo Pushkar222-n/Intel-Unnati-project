@@ -2,8 +2,7 @@ import sqlite3
 import time
 from pathlib import Path
 
-database_dir = Path(
-    "/home/arthur_canon/Documents/Vehicle_Management/Vehicle_Management/Pushkar_try/database")
+database_dir = Path(__file__).parent.absolute()
 
 
 def preprocess_license_plate(text):
@@ -80,6 +79,7 @@ def create_parking_database():
     CREATE TABLE IF NOT EXISTS parking_occupancy(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         parking_id TEXT,
+        vehicle_id TEXT,
         timestamp TEXT,
         is_occupied INTEGER           
     )
@@ -88,15 +88,28 @@ def create_parking_database():
     conn.close()
 
 
-def update_parking_occupancy(parking_id, is_occupied):
+def update_parking_occupancy(parking_id, vehicle_id, is_occupied):
     conn = sqlite3.connect(database_dir / 'parking_management.db')
     cursor = conn.cursor()
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-
     cursor.execute('''
-    INSERT INTO parking_occupancy(parking_id, timestamp, is_occupied)
-    VALUES(?, ?, ?)
-    ''', (parking_id, current_time, int(is_occupied)))
+        SELECT id FROM parking_occupancy
+        WHERE parking_id = ? AND vehicle_id = ? AND is_occupied = 1
+    ''', (parking_id, vehicle_id))
+
+    exists = cursor.fetchone()
+    if exists is None and is_occupied == 1 and vehicle_id:
+        cursor.execute('''
+        INSERT INTO parking_occupancy(parking_id, vehicle_id, timestamp, is_occupied)
+        VALUES(?, ?, ?, ?)
+        ''', (parking_id, vehicle_id, current_time, int(is_occupied)))
+    elif exists is not None and is_occupied == 0 and vehicle_id:
+        cursor.execute('''
+        UPDATE parking_occupancy
+        SET is_occupied = 0, timestamp = ?
+        WHERE id = ?
+        ''', (current_time, exists[0]))
+
     conn.commit()
     conn.close()
 
@@ -112,7 +125,7 @@ def add_approved_plates(plates_list):
             cursor.execute("""
                 INSERT INTO approved_plates(plate_number, approved_date) VALUES(?, ?)
             """, (plate, current_date))
-            print("Approved License plates added to database")
+            # print("Approved License plates added to database")
         else:
             print(f"{plate} already exists in the database")
 
@@ -155,18 +168,22 @@ if __name__ == "__main__":
     vehicle_tracker_path = database_dir / "vehicle_tracker.db"
     approved_plates_path = database_dir / "approved_plates.db"
     parking_path = database_dir / "parking_management.db"
+
+    print(f"Checking for parking database at: {parking_path}")
     if not parking_path.exists():
         create_parking_database()
         print("Parking database created")
     else:
         print("Parking database already exists")
 
+    print(f"Checking for tracker database at: {vehicle_tracker_path}")
     if not vehicle_tracker_path.exists():
         create_vehicle_tracker_database()
         print("Vehicle Tracker database created")
     else:
         print("Vehicle Tracker database already exists")
 
+    print(f"Checking for approved plates database at: {approved_plates_path}")
     if not approved_plates_path.exists():
         create_approved_plates_database()
         print("Approved Plates database created")

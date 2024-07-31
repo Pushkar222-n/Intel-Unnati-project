@@ -3,14 +3,21 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-database_dir = Path(
-    "/home/arthur_canon/Documents/Vehicle_Management/Vehicle_Management/Pushkar_try/database")
+database_dir = Path(__file__).parent.absolute() / "database"
 
-results_path = Path(
-    "/home/arthur_canon/Documents/Vehicle_Management/Vehicle_Management/Pushkar_try/results")
+results_path = Path(__file__).parent.absolute() / "results"
 
 parking_results_path = results_path / "parking"
 road_results_path = results_path / "road"
+
+
+def ensure_dir_exists(path):
+    path.mkdir(parents=True, exist_ok=True)
+
+
+ensure_dir_exists(results_path)
+ensure_dir_exists(parking_results_path)
+ensure_dir_exists(road_results_path)
 
 
 def generate_parking_insights():
@@ -54,7 +61,7 @@ def generate_parking_insights():
     # for plotting peak occupancy times
     occupancy_data["second"] = occupancy_data["timestamp"].dt.second
     peak_times = occupancy_data.groupby(
-        'seconds')['is_occupied'].mean().sort_values(ascending=False)
+        'second')['is_occupied'].mean().sort_values(ascending=False)
     plt.figure(figsize=(10, 6))
     peak_times.plot(kind='bar')
     plt.title('Average Occupancy by seconds')
